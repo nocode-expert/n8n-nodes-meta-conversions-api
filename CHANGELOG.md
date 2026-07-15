@@ -6,7 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-Initial release, not yet published.
+## [0.1.1] - 2026-07-15
+
+### Fixed
+
+- Stopped shipping TypeScript declarations. n8n's own package scanner lints the published files and read `MetaConversionsApi.credentials.d.ts` as a credential file with the wrong extension, which failed the check that verification requires. Nothing consumed the declarations: n8n loads the compiled `.js` entrypoints named in `package.json`. The tarball drops from 29 files to 22.
+
+## [0.1.0] - 2026-07-15
+
+Initial release.
 
 ### Added
 
@@ -25,4 +33,6 @@ Initial release, not yet published.
 - Limited Data Use, opt out, referrer URL, test event code and per-node API version options.
 - Usable as an AI tool.
 
-[Unreleased]: https://github.com/nocode-expert/n8n-nodes-meta-conversions-api/commits/main
+[Unreleased]: https://github.com/nocode-expert/n8n-nodes-meta-conversions-api/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/nocode-expert/n8n-nodes-meta-conversions-api/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/nocode-expert/n8n-nodes-meta-conversions-api/releases/tag/v0.1.0
