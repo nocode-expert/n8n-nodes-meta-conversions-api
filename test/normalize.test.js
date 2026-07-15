@@ -220,3 +220,25 @@ test('an explicit country code is trusted over a length guess', () => {
 	// national is left alone.
 	assert.equal(normalizePhone('447911123456', '44'), '447911123456');
 });
+
+test('an IP is validated structurally, not just by its alphabet', () => {
+	// ":::" and "abc:def" contain only hex and colons, so a character-class test
+	// passed both. Meta rejects a malformed address, which bounces the event
+	// rather than dropping the field.
+	assert.equal(normalizeIp(':::'), undefined);
+	assert.equal(normalizeIp('abc:def'), undefined);
+	assert.equal(normalizeIp('1:2:3:4:5:6:7'), undefined, 'seven groups is not an address');
+	assert.equal(normalizeIp('1::2::3'), undefined, 'only one :: may compress');
+	assert.equal(normalizeIp('12345::1'), undefined, 'a group is at most four hex digits');
+});
+
+test('real addresses in every documented form still pass', () => {
+	assert.equal(normalizeIp('254.254.254.254'), '254.254.254.254');
+	// Both forms TikTok's reference gives as acceptable.
+	assert.equal(normalizeIp('2001:0db8:1111:000a:00b0:0000:0000:0200'), '2001:0db8:1111:000a:00b0:0000:0000:0200');
+	assert.equal(normalizeIp('2001:db8:1111:a:b0::200'), '2001:db8:1111:a:b0::200');
+	assert.equal(normalizeIp('::1'), '::1');
+	assert.equal(normalizeIp('::ffff:192.168.1.1'), '::ffff:192.168.1.1', 'IPv4-mapped');
+	assert.equal(normalizeIp('fe80::1%eth0'), 'fe80::1%eth0', 'zone index');
+	assert.equal(normalizeIp('203.0.113.9, 70.41.3.18'), '203.0.113.9', 'X-Forwarded-For chain');
+});

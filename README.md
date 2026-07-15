@@ -1,4 +1,7 @@
-<img src="nodes/MetaConversions/conversions.svg" width="56" alt="">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="nodes/MetaConversions/conversions.dark.svg">
+  <img src="nodes/MetaConversions/conversions.svg" width="56" alt="Meta Conversions API">
+</picture>
 
 # Meta Conversions API node for n8n
 
@@ -20,7 +23,7 @@ The usual way to send conversion events from n8n is a hand built chain: a Crypto
 That pattern has four failure modes, and all four are invisible in the n8n UI because the platform returns success either way:
 
 1. **Hashes of empty strings.** A Crypto node runs whether or not the field has a value. When `city` is missing you send `SHA256("")`, which is a perfectly well formed hash of nobody.
-2. **Normalization that does not match the spec.** Meta wants phone numbers as digits with a country code, ZIP truncated to five, country as lowercase alpha-2, city with the spaces stripped. Lowercasing everything uniformly is not the same thing.
+2. **Normalization that does not match the spec.** Meta wants phone numbers as digits with a country code and no plus sign, US ZIPs cut to five digits but everyone else's postcode left alone, country as lowercase alpha-2, city with the spaces stripped. Lowercasing everything uniformly is not the same thing.
 3. **Double hashing.** Hash an already hashed value and the match is silently destroyed.
 4. **A token in the workflow JSON.** Export the workflow, share it, commit it, and the token goes with it.
 
@@ -59,21 +62,30 @@ The token lives in n8n's encrypted credential store, not in the workflow JSON. E
 
 **Webhook > Meta Conversions API.** That is the whole workflow.
 
-| Parameter | Value |
+| Parameter | What to map |
 | --- | --- |
-| Dataset ID | `{{ $json.body.pixel_id }}` |
-| Event Name | `Subscribe` (or any standard event, or **Custom Event…**) |
+| Dataset ID | Your dataset ID from Events Manager. Map a field instead if one workflow serves several datasets. |
+| Event Name | `Subscribe`, or any standard event, or **Custom Event…** |
 | Action Source | Website |
-| Event Source URL | `{{ $json.body.event_source_url }}` |
-| Event ID | `{{ $json.body.event_id }}` |
-| Value | `{{ $json.body.value }}` |
-| Customer Information > Email | `{{ $json.body.email }}` |
-| Customer Information > Phone | `{{ $json.body.phone }}` |
-| Customer Information > Fbc | `{{ $json.body.fbc || $json.body.fbclid }}` |
-| Customer Information > Client IP Address | `{{ $json.body.ip }}` |
-| Customer Information > Client User Agent | `{{ $json.headers['user-agent'] }}` |
+| Event Source URL | The page the conversion happened on. Meta requires it for website events. |
+| Event ID | Whatever your pixel sends as its `eventID` for the same conversion, usually an order ID. |
+| Value | The order value, for events that have one. |
+| Customer Information > Email | The customer's email, raw. |
+| Customer Information > Phone | The customer's phone, raw, in whatever format you hold it. |
+| Customer Information > Fbc | The `_fbc` cookie, or the `fbclid` from the landing URL. |
+| Customer Information > Client IP Address | The visitor's IP, from the original request. |
+| Customer Information > Client User Agent | The visitor's user agent, from the original request. |
 
-Map the raw values. The node does the normalizing and hashing.
+**Map the raw values.** Do not lowercase the email, strip the phone, or hash
+anything first. That is the node's job, and it is the job the node exists to do:
+Meta's rules are specific, and getting them subtly wrong produces a well-formed
+hash of nobody while Meta answers `events_received: 1` all the same.
+
+The last two are the ones people forget. A browser knows the visitor's IP and
+user agent; a server-side workflow only knows what the request carried to it, so
+both have to survive the trip into your webhook payload. Meta says sending them
+"may help improve event matching and could also help improve ad delivery" — and
+if the payload never carried them, no mapping can invent them.
 
 ### Events with a value, and events without
 
@@ -92,7 +104,7 @@ Every identifier is normalized to Meta's rules before hashing. Fields you leave 
 | Field | Sent as | Normalization |
 | --- | --- | --- |
 | Email | `em`, hashed | Trimmed, lowercased. Values that are not emails are dropped. |
-| Phone | `ph`, hashed | Digits only, no plus sign, country code required. A leading trunk zero is stripped. Set **Default Country Calling Code** and bare national numbers get one. |
+| Phone | `ph`, hashed | Digits only, no plus sign, country code required. A national trunk zero is stripped, including the bracketed `+44 (0)7911` form. Set **Default Country Calling Code** and bare national numbers get one. |
 | First / Last Name | `fn` / `ln`, hashed | Lowercased, punctuation removed. |
 | City | `ct`, hashed | Lowercased, spaces and punctuation removed. |
 | State | `st`, hashed | Lowercased alphanumerics. Use the two-letter code for US states. |
@@ -101,7 +113,7 @@ Every identifier is normalized to Meta's rules before hashing. Fields you leave 
 | Date of Birth | `db`, hashed | Any parseable date, converted to `YYYYMMDD`. |
 | Gender | `ge`, hashed | Reduced to `f` or `m`. |
 | External ID | `external_id`, hashed | Trimmed. Keep it stable across events. |
-| Client IP Address | `client_ip_address`, raw | Validated as IPv4 or IPv6. An `X-Forwarded-For` chain is reduced to the client IP. |
+| Client IP Address | `client_ip_address`, raw | Checked as a real IPv4 or IPv6 address, not just IP-shaped text. An `X-Forwarded-For` chain is reduced to the client IP. |
 | Client User Agent | `client_user_agent`, raw | Passed through. |
 | Fbc | `fbc`, raw | A bare `fbclid` is upgraded to `fb.1.<timestamp>.<fbclid>`. |
 | Fbp | `fbp`, raw | Passed through. |

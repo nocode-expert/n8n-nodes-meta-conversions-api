@@ -263,12 +263,50 @@ export function normalizeIp(value: unknown): string | undefined {
 
 	const ipv4 =
 		/^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
-	// Permissive IPv6: hex groups and :: compression, optionally zoned.
-	const ipv6 = /^[0-9a-f:]+(:[0-9a-f.]+)?(%[0-9a-z]+)?$/i;
 
 	if (ipv4.test(ip)) return ip;
-	if (ip.includes(':') && ipv6.test(ip)) return ip;
+	if (isIpv6(ip)) return ip;
 	return undefined;
+}
+
+/**
+ * Structural IPv6 check: group count and :: compression, not just the alphabet.
+ *
+ * A character-class test is not a check. ":::" and "abc:def" are both made only
+ * of hex and colons, and both used to pass; Meta rejects a malformed address, so
+ * a permissive test here bounces the whole event rather than dropping one field.
+ */
+function isIpv6(value: string): boolean {
+	// A zone index (%eth0) is legal and not part of the address itself.
+	const address = value.split('%')[0];
+	if (address === '' || !address.includes(':')) return false;
+	// "::" compresses one run of zero groups. More than one is ambiguous, and
+	// ":::" is not compression at all.
+	if (address.includes(':::')) return false;
+	const halves = address.split('::');
+	if (halves.length > 2) return false;
+
+	const compressed = halves.length === 2;
+	const groups: string[] = [];
+	for (const half of halves) {
+		if (half === '') continue;
+		groups.push(...half.split(':'));
+	}
+
+	// The last group may be a dotted IPv4, which occupies two groups' worth.
+	let width = groups.length;
+	const last = groups[groups.length - 1];
+	if (last !== undefined && last.includes('.')) {
+		if (!/^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/.test(last)) {
+			return false;
+		}
+		groups.pop();
+		width += 1;
+	}
+
+	if (!groups.every((group) => /^[0-9a-f]{1,4}$/i.test(group))) return false;
+	// Eight groups uncompressed; fewer only if "::" stands in for the rest.
+	return compressed ? width < 8 : width === 8;
 }
 
 /** Plain passthrough for values that are sent raw: user agent, fbp, lead_id. */
