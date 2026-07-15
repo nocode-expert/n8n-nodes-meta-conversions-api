@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/nocode-expert/n8n-nodes-meta-conversions-api/security/advisories/new
+    about: Report privately. Please do not open a public issue.
+  - name: Question or help with n8n itself
+    url: https://community.n8n.io/
+    about: For questions about n8n rather than this node.

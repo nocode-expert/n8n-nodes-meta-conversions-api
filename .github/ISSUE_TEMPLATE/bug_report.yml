@@ -1,0 +1,63 @@
+name: Bug report
+description: Something the node does wrong, including events that do not match
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please remove access tokens and personal data before posting. Dataset IDs
+        and hashed identifiers are best redacted too.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did the node do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: If this is about a platform spec, link the documentation page.
+    validations:
+      required: true
+
+  - type: textarea
+    id: payload
+    attributes:
+      label: Input payload
+      description: The item the node received, with personal data removed.
+      render: json
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Node output or error
+      description: What the node returned, or the error it raised.
+      render: text
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Version of this node
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: n8n-version
+    attributes:
+      label: n8n version
+      placeholder: 1.60.0
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirms
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have removed tokens and personal data from this report
+          required: true

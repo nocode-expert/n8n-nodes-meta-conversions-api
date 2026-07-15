@@ -1,0 +1,60 @@
+name: Publish to npm
+
+# Publishing is driven by a GitHub Release, so the tag, the release notes and
+# the npm version always describe the same commit.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    # Guards the npm token behind an environment, so a release still needs an
+    # approval step if one is configured on it.
+    environment: npm-publish
+    permissions:
+      contents: read
+      # Required for npm provenance, which n8n expects for verified nodes.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - run: npm ci
+
+      # Never publish something that does not pass its own checks.
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+
+      # The release tag is the source of truth. A mismatch means the wrong
+      # commit was tagged, which is worth failing on rather than publishing.
+      - name: Check package version matches the release tag
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(node -p "require('./package.json').version")
+          if [ "$tag" != "$pkg" ]; then
+            echo "Release tag ($tag) does not match package.json version ($pkg)"
+            exit 1
+          fi
+          echo "ok: publishing $pkg"
+
+      # `npm publish` cannot work here: prepublishOnly runs `n8n-node prerelease`,
+      # which exits 1 unless RELEASE_MODE is set. That is deliberate -- the CLI
+      # says "Prevent npm publish, instead require npm run release". `n8n-node
+      # release` sets RELEASE_MODE and NPM_CONFIG_PROVENANCE itself, and detects
+      # GitHub Actions via GITHUB_ACTIONS to publish with provenance.
+      - name: Publish
+        run: npm run release
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

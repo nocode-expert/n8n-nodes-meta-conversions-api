@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Lets maintainers re-run checks without a new commit.
+  workflow_dispatch:
+
+# Cancel superseded runs on the same branch or PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+# Read-only by default. Nothing in CI needs write access, and PRs from forks
+# must never be able to obtain it.
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Lint, build and test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Report every failing version, not just the first.
+      fail-fast: false
+      matrix:
+        # No Node 20 leg, at any patch version: @n8n/node-cli depends on
+        # isolated-vm, which declares >=22.0.0 and ships prebuilds only for 22+.
+        # On 20 npm falls back to compiling it from source and npm ci dies, so
+        # the toolchain cannot be installed to lint, build or test anything.
+        #
+        # This is the dev toolchain, not the package. What ships is
+        # dependency-free compiled JS that runs on the engines floor, and n8n 2.x
+        # itself requires >=22.22, so 22 is what this is really run on.
+        node: ['22']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      # Tests run against dist, so they must come after the build.
+      - name: Test
+        run: npm test
+
+  package:
+    name: Verify publishable package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      # Catches the case where a node or credential is built but not listed in
+      # package.json, which n8n would silently fail to load.
+      - name: Check n8n entry points exist in the packed tarball
+        run: |
+          npm pack --silent
+          tar -tzf *.tgz > files.txt
+          failed=0
+          for entry in $(node -p "
+            const p = require('./package.json');
+            [...p.n8n.nodes, ...p.n8n.credentials].join(' ')
+          "); do
+            if grep -qx "package/$entry" files.txt; then
+              echo "ok: $entry"
+            else
+              echo "MISSING from package: $entry"
+              failed=1
+            fi
+          done
+          exit $failed
+
+      # Verified community nodes are not allowed runtime dependencies.
+      - name: Check for runtime dependencies
+        run: |
+          deps=$(node -p "Object.keys(require('./package.json').dependencies || {}).join(' ')")
+          if [ -n "$deps" ]; then
+            echo "Runtime dependencies are not allowed in a verified community node: $deps"
+            exit 1
+          fi
+          echo "ok: no runtime dependencies"

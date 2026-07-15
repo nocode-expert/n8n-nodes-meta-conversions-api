@@ -1,0 +1,24 @@
+{
+	"node": "n8n-nodes-meta-conversions-api",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": [
+		"Marketing",
+		"Analytics"
+	],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://nocode.expert/docs/n8n/meta-conversions-api/access-token"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://nocode.expert/docs/n8n/meta-conversions-api"
+			},
+			{
+				"url": "https://github.com/nocode-expert/n8n-nodes-meta-conversions-api?tab=readme-ov-file"
+			}
+		]
+	}
+}

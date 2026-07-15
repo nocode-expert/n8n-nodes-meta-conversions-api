@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # This package ships no runtime dependencies, so this covers devDependencies
+  # and keeps the toolchain current.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-dependencies:
+        patterns: ['*']
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

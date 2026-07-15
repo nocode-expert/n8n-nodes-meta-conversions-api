@@ -1,0 +1,29 @@
+name: Feature request
+description: A field, option, or platform the node should support
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: The workflow you are building, not just the field you want.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like the node to do
+    validations:
+      required: true
+
+  - type: input
+    id: docs
+    attributes:
+      label: Platform documentation
+      description: If this is a platform field or endpoint, link the docs for it.
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: How you are working around it today

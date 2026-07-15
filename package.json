@@ -1,0 +1,68 @@
+{
+  "name": "n8n-nodes-meta-conversions-api",
+  "version": "0.1.0",
+  "description": "Send server-side conversion events to the Meta Conversions API from n8n, with customer information normalized and SHA-256 hashed to Meta's spec.",
+  "license": "MIT",
+  "homepage": "https://nocode.expert/docs/n8n/meta-conversions-api",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "meta",
+    "facebook",
+    "conversions-api",
+    "capi",
+    "server-side-tracking",
+    "pixel",
+    "attribution",
+    "advertising"
+  ],
+  "author": {
+    "name": "Rup Sarmah",
+    "email": "hello@nocode.expert"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nocode-expert/n8n-nodes-meta-conversions-api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nocode-expert/n8n-nodes-meta-conversions-api/issues"
+  },
+  "engines": {
+    "node": ">=20.15"
+  },
+  "scripts": {
+    "build": "n8n-node build",
+    "build:watch": "tsc --watch",
+    "dev": "n8n-node dev",
+    "lint": "n8n-node lint",
+    "lint:fix": "n8n-node lint --fix",
+    "test": "node --test test/*.test.js",
+    "release": "n8n-node release",
+    "prepublishOnly": "n8n-node prerelease"
+  },
+  "files": [
+    "dist",
+    "!dist/tsconfig.tsbuildinfo",
+    "!dist/package.json"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "strict": true,
+    "credentials": [
+      "dist/credentials/MetaConversionsApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/MetaConversions/MetaConversions.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@n8n/node-cli": "*",
+    "eslint": "9.32.0",
+    "prettier": "3.6.2",
+    "release-it": "^19.0.4",
+    "typescript": "5.9.2"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}
